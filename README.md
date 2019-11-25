@@ -1,4 +1,4 @@
-RxLua [![Build Status](https://travis-ci.org/bjornbytes/RxLua.svg)](https://travis-ci.org/bjornbytes/RxLua) [![Coverage Status](https://coveralls.io/repos/github/bjornbytes/RxLua/badge.svg?branch=master)](https://coveralls.io/github/bjornbytes/RxLua?branch=master)
+RxLua [![Build Status](https://travis-ci.org/Ellypse/RxLua.svg)](https://travis-ci.org/Ellypse/RxLua) [![Coverage Status](https://coveralls.io/repos/github/Ellypse/RxLua/badge.svg?branch=master)](https://coveralls.io/github/Ellypse/RxLua?branch=master)
 ===
 
 [Reactive Extensions](http://reactivex.io) for Lua.
@@ -39,6 +39,14 @@ local rx = require 'rx'
 #### Love2D
 
 See [RxLove](https://github.com/bjornbytes/RxLove).
+
+#### World of Warcraft
+
+Requires [LibStub](https://www.wowace.com/projects/libstub).
+
+```lua
+local rx = LibStub:GetLibrary("RxWoW-0.0")
+```
 
 Example Usage
 ---

@@ -72,7 +72,7 @@ local files = {
 
 local header = [[
 -- RxLua v0.0.3
--- https://github.com/bjornbytes/rxlua
+-- https://github.com/Ellypse/rxlua
 -- MIT License
 
 ]]
@@ -85,6 +85,16 @@ exports.license = 'MIT'
 exports.author = { url = 'https://github.com/bjornbytes' }
 exports.homepage = 'https://github.com/bjornbytes/rxlua'
 
+]]
+
+---@language Lua
+local WoWExports = [[
+local MAJOR, MINOR = "RxWoW-0.0", 3
+
+---@class RxWoW
+local RxWoW = LibStub:NewLibrary(MAJOR, MINOR)
+
+if not RxWoW then return end
 ]]
 
 local footer = [[return {
@@ -100,6 +110,21 @@ local footer = [[return {
   BehaviorSubject = BehaviorSubject,
   ReplaySubject = ReplaySubject
 }]]
+
+---@language Lua
+local WoWFooter = [[
+RxWoW.util = util
+RxWoW.Subscription = Subscription
+RxWoW.Observer = Observer
+RxWoW.Observable = Observable
+RxWoW.ImmediateScheduler = ImmediateScheduler
+RxWoW.CooperativeScheduler = CooperativeScheduler
+RxWoW.TimeoutScheduler = TimeoutScheduler
+RxWoW.Subject = Subject
+RxWoW.AsyncSubject = AsyncSubject
+RxWoW.BehaviorSubject = BehaviorSubject
+RxWoW.ReplaySubject = ReplaySubject
+]]
 
 local output = ''
 
@@ -129,6 +154,9 @@ if distribution == 'base' then
 elseif distribution == 'luvit' then
   destination = 'rx-luvit.lua'
   components = { header, exports, output, footer }
+elseif distribution == 'WoW' then
+  destination = 'rx-wow.lua'
+  components = { header, WoWExports, output, WoWFooter }
 else
   error('Invalid distribution specified.')
 end
