@@ -1,9 +1,10 @@
 local Observable = require 'observable'
 local util = require 'util'
 
---- Returns a new Observable that produces the first value of the original that satisfies a
--- predicate.
--- @arg {function} predicate - The predicate used to find a value.
+--- Returns a new Observable that produces the first value of the original that satisfies a predicate.
+--- @generic T
+--- @param predicate Predicate The predicate used to find a value.
+--- @return Observable
 function Observable:find(predicate)
   predicate = predicate or util.identity
 

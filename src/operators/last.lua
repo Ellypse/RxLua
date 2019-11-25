@@ -2,7 +2,7 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that only produces the last result of the original.
--- @returns {Observable}
+--- @returns Observable
 function Observable:last()
   return Observable.create(function(observer)
     local value

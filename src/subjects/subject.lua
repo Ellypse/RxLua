@@ -3,16 +3,16 @@ local Observer = require 'observer'
 local Subscription = require 'subscription'
 local util = require 'util'
 
---- @class Subject
--- @description Subjects function both as an Observer and as an Observable. Subjects inherit all
--- Observable functions, including subscribe. Values can also be pushed to the Subject, which will
--- be broadcasted to any subscribed Observers.
+--- @class Subject: Observable
+--- @description Subjects function both as an Observer and as an Observable. Subjects inherit all
+--- Observable functions, including subscribe. Values can also be pushed to the Subject, which will
+--- be broadcasted to any subscribed Observers.
 local Subject = setmetatable({}, Observable)
 Subject.__index = Subject
 Subject.__tostring = util.constant('Subject')
 
 --- Creates a new Subject.
--- @returns {Subject}
+--- @return Subject
 function Subject.create()
   local self = {
     observers = {},
@@ -23,10 +23,15 @@ function Subject.create()
 end
 
 --- Creates a new Observer and attaches it to the Subject.
--- @arg {function|table} onNext|observer - A function called when the Subject produces a value or
---                                         an existing Observer to attach to the Subject.
--- @arg {function} onError - Called when the Subject terminates due to an error.
--- @arg {function} onCompleted - Called when the Subject completes normally.
+--- @generic T
+--- @param onNext onNextCallback A function called when the Subject produces a value or an existing Observer to attach to the Subject.
+--- @param onError onErrorCallback Called when the Subject terminates due to an error.
+--- @param onCompleted onCompletedCallback Called when the Subject completes normally.
+--- @return Subscription
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback):Subscription
+--- @overload fun(onNext: onNextCallback):Subscription
+--- @overload fun(observer: Observer):Subscription
+--- @overload fun():Subscription
 function Subject:subscribe(onNext, onError, onCompleted)
   local observer
 
@@ -49,7 +54,8 @@ function Subject:subscribe(onNext, onError, onCompleted)
 end
 
 --- Pushes zero or more values to the Subject. They will be broadcasted to all Observers.
--- @arg {*...} values
+--- @generic T
+--- @vararg T
 function Subject:onNext(...)
   if not self.stopped then
     for i = #self.observers, 1, -1 do
@@ -59,7 +65,7 @@ function Subject:onNext(...)
 end
 
 --- Signal to all Observers that an error has occurred.
--- @arg {string=} message - A string describing what went wrong.
+--- @param message string A string describing what went wrong.
 function Subject:onError(message)
   if not self.stopped then
     for i = #self.observers, 1, -1 do

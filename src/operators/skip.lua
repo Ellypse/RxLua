@@ -1,9 +1,10 @@
 local Observable = require 'observable'
 
 --- Returns a new Observable that skips over a specified number of values produced by the original
--- and produces the rest.
--- @arg {number=1} n - The number of values to ignore.
--- @returns {Observable}
+--- and produces the rest.
+--- @param n number The number of values to ignore.
+--- @return Observable
+--- @overload fun():Observable
 function Observable:skip(n)
   n = n or 1
 

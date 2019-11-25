@@ -1,9 +1,9 @@
 local Observable = require 'observable'
 
 --- Returns a new Observable that produces the values produced by all the specified Observables in
--- the order they are produced.
--- @arg {Observable...} sources - One or more Observables to merge.
--- @returns {Observable}
+--- the order they are produced.
+--- @vararg Observable One or more Observables to merge.
+--- @return Observable
 function Observable:merge(...)
   local sources = {...}
   table.insert(sources, 1, self)

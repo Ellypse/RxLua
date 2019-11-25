@@ -3,18 +3,18 @@ local Observer = require 'observer'
 local Subscription = require 'subscription'
 local util = require 'util'
 
---- @class AsyncSubject
--- @description AsyncSubjects are subjects that produce either no values or a single value.  If
--- multiple values are produced via onNext, only the last one is used.  If onError is called, then
--- no value is produced and onError is called on any subscribed Observers.  If an Observer
--- subscribes and the AsyncSubject has already terminated, the Observer will immediately receive the
--- value or the error.
+--- @class AsyncSubject: Observable
+--- @description AsyncSubjects are subjects that produce either no values or a single value.  If
+--- multiple values are produced via onNext, only the last one is used.  If onError is called, then
+--- no value is produced and onError is called on any subscribed Observers.  If an Observer
+--- subscribes and the AsyncSubject has already terminated, the Observer will immediately receive the
+--- value or the error.
 local AsyncSubject = setmetatable({}, Observable)
 AsyncSubject.__index = AsyncSubject
 AsyncSubject.__tostring = util.constant('AsyncSubject')
 
 --- Creates a new AsyncSubject.
--- @returns {AsyncSubject}
+--- @return AsyncSubject
 function AsyncSubject.create()
   local self = {
     observers = {},
@@ -27,10 +27,14 @@ function AsyncSubject.create()
 end
 
 --- Creates a new Observer and attaches it to the AsyncSubject.
--- @arg {function|table} onNext|observer - A function called when the AsyncSubject produces a value
---                                         or an existing Observer to attach to the AsyncSubject.
--- @arg {function} onError - Called when the AsyncSubject terminates due to an error.
--- @arg {function} onCompleted - Called when the AsyncSubject completes normally.
+--- @generic T
+--- @param onNext onNextCallback A function called when the AsyncSubject produces a value.
+--- @param onError onErrorCallback Called when the AsyncSubject terminates due to an error.
+--- @param onCompleted onCompletedCallback Called when the AsyncSubject completes normally.
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback):Subscription
+--- @overload fun(onNext: onNextCallback):Subscription
+--- @overload fun(observer: Observer):Subscription
+--- @overload fun():Subscription
 function AsyncSubject:subscribe(onNext, onError, onCompleted)
   local observer
 
@@ -62,7 +66,8 @@ function AsyncSubject:subscribe(onNext, onError, onCompleted)
 end
 
 --- Pushes zero or more values to the AsyncSubject.
--- @arg {*...} values
+--- @generic T
+--- @vararg T
 function AsyncSubject:onNext(...)
   if not self.stopped then
     self.value = util.pack(...)
@@ -70,7 +75,7 @@ function AsyncSubject:onNext(...)
 end
 
 --- Signal to all Observers that an error has occurred.
--- @arg {string=} message - A string describing what went wrong.
+--- @param message string A string describing what went wrong.
 function AsyncSubject:onError(message)
   if not self.stopped then
     self.errorMessage = message
@@ -96,6 +101,17 @@ function AsyncSubject:onCompleted()
 
     self.stopped = true
   end
+end
+
+---@return Observable
+function AsyncSubject:asObservable()
+  return Observable.create(function(observer)
+    self:subscribe(
+      function(...) observer:onNext(...) end,
+      function(... ) observer:onError(...) end,
+      function() observer:onCompleted() end
+    )
+  end)
 end
 
 AsyncSubject.__call = AsyncSubject.onNext

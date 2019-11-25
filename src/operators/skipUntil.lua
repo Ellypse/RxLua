@@ -1,9 +1,9 @@
 local Observable = require 'observable'
 
 --- Returns a new Observable that skips over values produced by the original until the specified
--- Observable produces a value.
--- @arg {Observable} other - The Observable that triggers the production of values.
--- @returns {Observable}
+--- Observable produces a value.
+--- @param other Observable The Observable that triggers the production of values.
+--- @return Observable
 function Observable:skipUntil(other)
   return Observable.create(function(observer)
     local triggered = false

@@ -1,9 +1,9 @@
 local Observable = require 'observable'
 local util = require 'util'
 
---- Returns an Observable that buffers values from the original and produces them as multiple
--- values.
--- @arg {number} size - The size of the buffer.
+--- Returns an Observable that buffers values from the original and produces them as multiple values.
+--- @param size number The size of the buffer.
+--- @return Observable
 function Observable:buffer(size)
   if not size or type(size) ~= 'number' then
     error('Expected a number')

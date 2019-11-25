@@ -2,8 +2,8 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that produces elements until the predicate returns falsy.
--- @arg {function} predicate - The predicate used to continue production of values.
--- @returns {Observable}
+--- @param predicate Predicate The predicate used to continue production of values.
+--- @return Observable
 function Observable:takeWhile(predicate)
   predicate = predicate or util.identity
 

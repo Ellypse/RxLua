@@ -2,9 +2,9 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns an Observable that omits a specified number of values from the end of the original
--- Observable.
--- @arg {number} count - The number of items to omit from the end.
--- @returns {Observable}
+--- Observable.
+--- @param count number The number of items to omit from the end.
+--- @return Observable
 function Observable:skipLast(count)
   if not count or type(count) ~= 'number' then
     error('Expected a number')

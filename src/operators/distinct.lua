@@ -1,7 +1,7 @@
 local Observable = require 'observable'
 
 --- Returns a new Observable that produces the values from the original with duplicates removed.
--- @returns {Observable}
+--- @return Observable
 function Observable:distinct()
   return Observable.create(function(observer)
     local values = {}

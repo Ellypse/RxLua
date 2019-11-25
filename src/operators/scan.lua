@@ -2,13 +2,12 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that produces values computed by accumulating the results of running a
--- function on each value produced by the original Observable.
--- @arg {function} accumulator - Accumulates the values of the original Observable. Will be passed
---                               the return value of the last call as the first argument and the
---                               current values as the rest of the arguments.  Each value returned
---                               from this function will be emitted by the Observable.
--- @arg {*} seed - A value to pass to the accumulator the first time it is run.
--- @returns {Observable}
+--- function on each value produced by the original Observable.
+--- @generic T
+--- @param accumulator Accumulator Accumulates the values of the original Observable. Will be passed the return value of the last call as the first argument and the current values as the rest of the arguments. Each value returned from this function will be emitted by the Observable.
+--- @param seed T A value to pass to the accumulator the first time it is run.
+--- @return Observable
+--- @overload fun(accumulator: Accumulator):Observable
 function Observable:scan(accumulator, seed)
   return Observable.create(function(observer)
     local result = seed

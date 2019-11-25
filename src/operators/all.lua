@@ -2,7 +2,8 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Determine whether all items emitted by an Observable meet some criteria.
--- @arg {function=identity} predicate - The predicate used to evaluate objects.
+--- @param predicate fun(...):boolean - The predicate used to evaluate objects.
+--- @return Observable
 function Observable:all(predicate)
   predicate = predicate or util.identity
 

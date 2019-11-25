@@ -1,8 +1,8 @@
 local Observable = require 'observable'
 
 --- Given a set of Observables, produces values from only the first one to produce a value.
--- @arg {Observable...} observables
--- @returns {Observable}
+--- @vararg Observable
+--- @return Observable
 function Observable.amb(a, b, ...)
   if not a or not b then return a end
 

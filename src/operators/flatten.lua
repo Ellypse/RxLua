@@ -2,8 +2,8 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that subscribes to the Observables produced by the original and
--- produces their values.
--- @returns {Observable}
+--- produces their values.
+--- @return Observable
 function Observable:flatten()
   return Observable.create(function(observer)
     local subscriptions = {}

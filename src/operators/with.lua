@@ -2,10 +2,10 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns an Observable that produces values from the original along with the most recently
--- produced value from all other specified Observables. Note that only the first argument from each
--- source Observable is used.
--- @arg {Observable...} sources - The Observables to include the most recent values from.
--- @returns {Observable}
+--- produced value from all other specified Observables. Note that only the first argument from each
+--- source Observable is used.
+--- @vararg Observable The Observables to include the most recent values from.
+--- @return Observable
 function Observable:with(...)
   local sources = {...}
 

@@ -1,21 +1,21 @@
 local Subscription = require 'subscription'
 
 --- @class TimeoutScheduler
--- @description A scheduler that uses luvit's timer library to schedule events on an event loop.
+--- @description A scheduler that uses luvit's timer library to schedule events on an event loop.
 local TimeoutScheduler = {}
 TimeoutScheduler.__index = TimeoutScheduler
 TimeoutScheduler.__tostring = util.constant('TimeoutScheduler')
 
 --- Creates a new TimeoutScheduler.
--- @returns {TimeoutScheduler}
+--- @return TimeoutScheduler
 function TimeoutScheduler.create()
   return setmetatable({}, TimeoutScheduler)
 end
 
 --- Schedules an action to run at a future point in time.
--- @arg {function} action - The action to run.
--- @arg {number=0} delay - The delay, in milliseconds.
--- @returns {Subscription}
+--- @param action fun():void The action to run.
+--- @arg delay number The delay, in milliseconds.
+--- @return Subscription
 function TimeoutScheduler:schedule(action, delay, ...)
   local timer = require 'timer'
   local subscription

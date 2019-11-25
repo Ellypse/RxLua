@@ -1,16 +1,15 @@
 local util = require 'util'
 
 --- @class Subscription
--- @description A handle representing the link between an Observer and an Observable, as well as any
--- work required to clean up after the Observable completes or the Observer unsubscribes.
+--- @description A handle representing the link between an Observer and an Observable, as well as any
+--- work required to clean up after the Observable completes or the Observer unsubscribes.
 local Subscription = {}
 Subscription.__index = Subscription
 Subscription.__tostring = util.constant('Subscription')
 
 --- Creates a new Subscription.
--- @arg {function=} action - The action to run when the subscription is unsubscribed. It will only
---                           be run once.
--- @returns {Subscription}
+--- @param action fun(self: Subscription):void - The action to run when the subscription is unsubscribed. It will only be run once.
+--- @return Subscription
 function Subscription.create(action)
   local self = {
     action = action or util.noop,

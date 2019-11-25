@@ -1,8 +1,8 @@
 local Observable = require 'observable'
 
 --- Given an Observable that produces Observables, returns an Observable that produces the values
--- produced by the most recently produced Observable.
--- @returns {Observable}
+--- produced by the most recently produced Observable.
+--- @return Observable
 function Observable:switch()
   return Observable.create(function(observer)
     local innerSubscription

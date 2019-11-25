@@ -1,10 +1,10 @@
 local Observable = require 'observable'
 
 --- Returns a new Observable that produces values computed by extracting the given keys from the
--- tables produced by the original.
--- @arg {string...} keys - The key to extract from the table. Multiple keys can be specified to
---                         recursively pluck values from nested tables.
--- @returns {Observable}
+--- tables produced by the original.
+--- @param key string The key to extract from the table. Multiple keys can be specified to recursively pluck values from nested tables.
+--- @vararg string
+--- @return Observable
 function Observable:pluck(key, ...)
   if not key then return self end
 

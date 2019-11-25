@@ -1,9 +1,9 @@
 local Observable = require 'observable'
 
 --- Returns an Observable that restarts in the event of an error.
--- @arg {number=} count - The maximum number of times to retry.  If left unspecified, an infinite
---                        number of retries will be attempted.
--- @returns {Observable}
+--- @param count number The maximum number of times to retry.  If left unspecified, an infinite number of retries will be attempted.
+--- @return Observable
+--- @overload fun():Observable
 function Observable:retry(count)
   return Observable.create(function(observer)
     local subscription

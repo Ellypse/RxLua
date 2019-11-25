@@ -2,9 +2,9 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns an Observable that produces a specified number of elements from the end of a source
--- Observable.
--- @arg {number} count - The number of elements to produce.
--- @returns {Observable}
+--- Observable.
+--- @param count number The number of elements to produce.
+--- @return Observable
 function Observable:takeLast(count)
   if not count or type(count) ~= 'number' then
     error('Expected a number')

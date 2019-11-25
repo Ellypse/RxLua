@@ -2,9 +2,9 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that produces values from the original which do not satisfy a
--- predicate.
--- @arg {function} predicate - The predicate used to reject values.
--- @returns {Observable}
+--- predicate.
+--- @param predicate Predicate - The predicate used to reject values.
+--- @return Observable
 function Observable:reject(predicate)
   predicate = predicate or util.identity
 

@@ -2,9 +2,9 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that produces a single boolean value representing whether or not the
--- specified value was produced by the original.
--- @arg {*} value - The value to search for.  == is used for equality testing.
--- @returns {Observable}
+--- specified value was produced by the original.
+--- @param value any The value to search for.  == is used for equality testing.
+--- @return Observable
 function Observable:contains(value)
   return Observable.create(function(observer)
     local subscription

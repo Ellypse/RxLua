@@ -2,9 +2,8 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns an Observable that produces a sliding window of the values produced by the original.
--- @arg {number} size - The size of the window. The returned observable will produce this number
---                      of the most recent values as multiple arguments to onNext.
--- @returns {Observable}
+--- @param size number The size of the window. The returned observable will produce this number of the most recent values as multiple arguments to onNext.
+--- @return Observable
 function Observable:window(size)
   if not size or type(size) ~= 'number' then
     error('Expected a number')

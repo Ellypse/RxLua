@@ -3,9 +3,10 @@ local Subscription = require 'subscription'
 local util = require 'util'
 
 --- Returns a new Observable that uses a callback to create Observables from the values produced by
--- the source, then produces values from the most recent of these Observables.
--- @arg {function=identity} callback - The function used to convert values to Observables.
--- @returns {Observable}
+--- the source, then produces values from the most recent of these Observables.
+--- @generic T
+--- @param callback fun(value: T):Observable[] The function used to convert values to Observables.
+--- @return Observable
 function Observable:flatMapLatest(callback)
   callback = callback or util.identity
   return Observable.create(function(observer)

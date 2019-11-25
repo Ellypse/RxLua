@@ -2,12 +2,12 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns an Observable that merges the values produced by the source Observables by grouping them
--- by their index.  The first onNext event contains the first value of all of the sources, the
--- second onNext event contains the second value of all of the sources, and so on.  onNext is called
--- a number of times equal to the number of values produced by the Observable that produces the
--- fewest number of values.
--- @arg {Observable...} sources - The Observables to zip.
--- @returns {Observable}
+--- by their index.  The first onNext event contains the first value of all of the sources, the
+--- second onNext event contains the second value of all of the sources, and so on.  onNext is called
+--- a number of times equal to the number of values produced by the Observable that produces the
+--- fewest number of values.
+--- @vararg Observable The Observables to zip.
+--- @returns Observable
 function Observable.zip(...)
   local sources = util.pack(...)
   local count = #sources

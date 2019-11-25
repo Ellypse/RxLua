@@ -1,8 +1,9 @@
 local Observable = require 'observable'
 
 --- Returns a new Observable that only produces the first n results of the original.
--- @arg {number=1} n - The number of elements to produce before completing.
--- @returns {Observable}
+--- @param n number The number of elements to produce before completing.
+--- @return Observable
+--- @overload fun():Observable
 function Observable:take(n)
   n = n or 1
 

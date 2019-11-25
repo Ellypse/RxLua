@@ -1,8 +1,8 @@
 local Observable = require 'observable'
 
 --- Returns a new Observable that completes when the specified Observable fires.
--- @arg {Observable} other - The Observable that triggers completion of the original.
--- @returns {Observable}
+--- @param other Observable The Observable that triggers completion of the original.
+--- @return Observable
 function Observable:takeUntil(other)
   return Observable.create(function(observer)
     local function onNext(...)

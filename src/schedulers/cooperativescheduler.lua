@@ -2,15 +2,15 @@ local util = require 'util'
 local Subscription = require 'subscription'
 
 --- @class CooperativeScheduler
--- @description Manages Observables using coroutines and a virtual clock that must be updated
--- manually.
+--- @description Manages Observables using coroutines and a virtual clock that must be updated
+--- manually.
 local CooperativeScheduler = {}
 CooperativeScheduler.__index = CooperativeScheduler
 CooperativeScheduler.__tostring = util.constant('CooperativeScheduler')
 
 --- Creates a new CooperativeScheduler.
--- @arg {number=0} currentTime - A time to start the scheduler at.
--- @returns {CooperativeScheduler}
+--- @param currentTime number A time to start the scheduler at.
+--- @return CooperativeScheduler
 function CooperativeScheduler.create(currentTime)
   local self = {
     tasks = {},
@@ -21,12 +21,11 @@ function CooperativeScheduler.create(currentTime)
 end
 
 --- Schedules a function to be run after an optional delay.  Returns a subscription that will stop
--- the action from running.
--- @arg {function} action - The function to execute. Will be converted into a coroutine. The
---                          coroutine may yield execution back to the scheduler with an optional
---                          number, which will put it to sleep for a time period.
--- @arg {number=0} delay - Delay execution of the action by a virtual time period.
--- @returns {Subscription}
+--- the action from running.
+--- @param action fun():void The function to execute. Will be converted into a coroutine. The coroutine may yield execution back to the scheduler with an optional number, which will put it to sleep for a time period.
+--- @param delay number Delay execution of the action by a virtual time period.
+--- @return Subscription
+--- @overload fun(action: fun():void):Subscription
 function CooperativeScheduler:schedule(action, delay)
   local task = {
     thread = coroutine.create(action),
@@ -40,6 +39,7 @@ function CooperativeScheduler:schedule(action, delay)
   end)
 end
 
+--- @param task fun():void
 function CooperativeScheduler:unschedule(task)
   for i = 1, #self.tasks do
     if self.tasks[i] == task then
@@ -49,10 +49,8 @@ function CooperativeScheduler:unschedule(task)
 end
 
 --- Triggers an update of the CooperativeScheduler. The clock will be advanced and the scheduler
--- will run any coroutines that are due to be run.
--- @arg {number=0} delta - An amount of time to advance the clock by. It is common to pass in the
---                         time in seconds or milliseconds elapsed since this function was last
---                         called.
+--- will run any coroutines that are due to be run.
+--- @param delta number An amount of time to advance the clock by. It is common to pass in the time in seconds or milliseconds elapsed since this function was last called.
 function CooperativeScheduler:update(delta)
   self.currentTime = self.currentTime + (delta or 0)
 
@@ -79,7 +77,7 @@ function CooperativeScheduler:update(delta)
   end
 end
 
---- Returns whether or not the CooperativeScheduler's queue is empty.
+--- @return boolean Whether or not the CooperativeScheduler's queue is empty.
 function CooperativeScheduler:isEmpty()
   return not next(self.tasks)
 end

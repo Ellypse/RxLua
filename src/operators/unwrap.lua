@@ -1,8 +1,8 @@
 local Observable = require 'observable'
 
 --- Returns an Observable that takes any values produced by the original that consist of multiple
--- return values and produces each value individually.
--- @returns {Observable}
+--- return values and produces each value individually.
+--- @return Observable
 function Observable:unwrap()
   return Observable.create(function(observer)
     local function onNext(...)

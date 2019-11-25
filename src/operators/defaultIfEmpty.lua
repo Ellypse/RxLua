@@ -1,11 +1,10 @@
 local Observable = require 'observable'
 local util = require 'util'
 
---- Returns a new Observable that produces a default set of items if the source Observable produces
--- no values.
--- @arg {*...} values - Zero or more values to produce if the source completes without emitting
---                      anything.
--- @returns {Observable}
+--- Returns a new Observable that produces a default set of items if the source Observable produces no values.
+--- @generic T
+--- @vararg T Zero or more values to produce if the source completes without emitting anything.
+--- @return Observable
 function Observable:defaultIfEmpty(...)
   local defaults = util.pack(...)
 

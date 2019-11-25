@@ -2,12 +2,12 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that runs a combinator function on the most recent values from a set
--- of Observables whenever any of them produce a new value. The results of the combinator function
--- are produced by the new Observable.
--- @arg {Observable...} observables - One or more Observables to combine.
--- @arg {function} combinator - A function that combines the latest result from each Observable and
---                              returns a single value.
--- @returns {Observable}
+--- of Observables whenever any of them produce a new value. The results of the combinator function
+--- are produced by the new Observable.
+--- @generic T
+--- @vararg Observable One or more Observables to combine.
+--- @param combinator fun(value: T):T A function that combines the latest result from each Observable and returns a single value.
+--- @return Observable
 function Observable:combineLatest(...)
   local sources = {...}
   local combinator = table.remove(sources)

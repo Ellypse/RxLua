@@ -2,9 +2,9 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that produces its most recent value every time the specified observable
--- produces a value.
--- @arg {Observable} sampler - The Observable that is used to sample values from this Observable.
--- @returns {Observable}
+--- produces a value.
+--- @param sampler Observable The Observable that is used to sample values from this Observable.
+--- @return Observable
 function Observable:sample(sampler)
   if not sampler then error('Expected an Observable') end
 

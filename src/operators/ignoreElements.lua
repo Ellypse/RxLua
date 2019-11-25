@@ -1,8 +1,8 @@
 local Observable = require 'observable'
 
 --- Returns an Observable that terminates when the source terminates but does not produce any
--- elements.
--- @returns {Observable}
+--- elements.
+--- @return Observable
 function Observable:ignoreElements()
   return Observable.create(function(observer)
     local function onError(message)

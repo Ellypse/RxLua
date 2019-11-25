@@ -2,8 +2,8 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that skips elements until the predicate returns falsy for one of them.
--- @arg {function} predicate - The predicate used to continue skipping values.
--- @returns {Observable}
+--- @param predicate Predicate The predicate used to continue skipping values.
+--- @return Observable
 function Observable:skipWhile(predicate)
   predicate = predicate or util.identity
 

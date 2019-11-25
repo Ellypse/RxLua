@@ -1,16 +1,21 @@
 local util = require 'util'
 
 --- @class Observer
--- @description Observers are simple objects that receive values from Observables.
+--- @generic T
+--- @description Observers are simple objects that receive values from Observables.
 local Observer = {}
 Observer.__index = Observer
 Observer.__tostring = util.constant('Observer')
 
 --- Creates a new Observer.
--- @arg {function=} onNext - Called when the Observable produces a value.
--- @arg {function=} onError - Called when the Observable terminates due to an error.
--- @arg {function=} onCompleted - Called when the Observable completes normally.
--- @returns {Observer}
+--- @generic T
+--- @param onNext onNextCallback void Called when the Observable produces a value.
+--- @param onError onErrorCallback void Called when the Observable terminates due to an error.
+--- @param onCompleted onCompletedCallback void Called when the Observable completes normally.
+--- @return Observer
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback)
+--- @overload fun(onNext: onNextCallback)
+--- @overload fun():Observer
 function Observer.create(onNext, onError, onCompleted)
   local self = {
     _onNext = onNext or util.noop,
@@ -23,7 +28,8 @@ function Observer.create(onNext, onError, onCompleted)
 end
 
 --- Pushes zero or more values to the Observer.
--- @arg {*...} values
+--- @generic T
+--- @vararg T
 function Observer:onNext(...)
   if not self.stopped then
     self._onNext(...)
@@ -31,7 +37,7 @@ function Observer:onNext(...)
 end
 
 --- Notify the Observer that an error has occurred.
--- @arg {string=} message - A string describing what went wrong.
+--- @param message string A string describing what went wrong.
 function Observer:onError(message)
   if not self.stopped then
     self.stopped = true

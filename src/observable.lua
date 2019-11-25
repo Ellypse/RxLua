@@ -1,14 +1,14 @@
 local util = require 'util'
 
 --- @class Observable
--- @description Observables push values to Observers.
+--- @description Observables push values to Observers.
 local Observable = {}
 Observable.__index = Observable
 Observable.__tostring = util.constant('Observable')
 
 --- Creates a new Observable.
--- @arg {function} subscribe - The subscription function that produces values.
--- @returns {Observable}
+--- @param subscribe fun(observer: Observer):void The subscription function that produces values.
+--- @return Observable
 function Observable.create(subscribe)
   local self = {
     _subscribe = subscribe
@@ -18,9 +18,15 @@ function Observable.create(subscribe)
 end
 
 --- Shorthand for creating an Observer and passing it to this Observable's subscription function.
--- @arg {function} onNext - Called when the Observable produces a value.
--- @arg {function} onError - Called when the Observable terminates due to an error.
--- @arg {function} onCompleted - Called when the Observable completes normally.
+--- @generic T
+--- @param onNext onNextCallback Called when the Observable produces a value.
+--- @param onError onErrorCallback Called when the Observable terminates due to an error.
+--- @param onCompleted onCompletedCallback Called when the Observable completes normally.
+--- @return Subscription
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback):Subscription
+--- @overload fun(onNext: onNextCallback)
+--- @overload fun(observer: Observer):Subscription
+--- @overload fun():Subscription
 function Observable:subscribe(onNext, onError, onCompleted)
   if type(onNext) == 'table' then
     return self._subscribe(onNext)
@@ -29,19 +35,20 @@ function Observable:subscribe(onNext, onError, onCompleted)
   end
 end
 
---- Returns an Observable that immediately completes without producing a value.
+--- @return Observable An Observable that immediately completes without producing a value.
 function Observable.empty()
   return Observable.create(function(observer)
     observer:onCompleted()
   end)
 end
 
---- Returns an Observable that never produces values and never completes.
+--- @return Observable An Observable that never produces values and never completes.
 function Observable.never()
   return Observable.create(function(observer) end)
 end
 
---- Returns an Observable that immediately produces an error.
+--- @param message string
+--- @return Observable An Observable that immediately produces an error.
 function Observable.throw(message)
   return Observable.create(function(observer)
     observer:onError(message)
@@ -49,8 +56,9 @@ function Observable.throw(message)
 end
 
 --- Creates an Observable that produces a set of values.
--- @arg {*...} values
--- @returns {Observable}
+--- @generic T
+--- @vararg T
+--- @return Observable
 function Observable.of(...)
   local args = {...}
   local argCount = select('#', ...)
@@ -64,11 +72,10 @@ function Observable.of(...)
 end
 
 --- Creates an Observable that produces a range of values in a manner similar to a Lua for loop.
--- @arg {number} initial - The first value of the range, or the upper limit if no other arguments
---                         are specified.
--- @arg {number=} limit - The second value of the range.
--- @arg {number=1} step - An amount to increment the value by each iteration.
--- @returns {Observable}
+--- @param initial number The first value of the range, or the upper limit if no other arguments are specified.
+--- @param limit number The second value of the range.
+--- @param step number An amount to increment the value by each iteration.
+--- @return Observable
 function Observable.fromRange(initial, limit, step)
   if not limit and not step then
     initial, limit = 1, initial
@@ -86,10 +93,11 @@ function Observable.fromRange(initial, limit, step)
 end
 
 --- Creates an Observable that produces values from a table.
--- @arg {table} table - The table used to create the Observable.
--- @arg {function=pairs} iterator - An iterator used to iterate the table, e.g. pairs or ipairs.
--- @arg {boolean} keys - Whether or not to also emit the keys of the table.
--- @returns {Observable}
+--- @generic T
+--- @param t T[] The table used to create the Observable.
+--- @param iterator fun():T Iterator used to iterate the table, e.g. pairs or ipairs.
+--- @param keys boolean Whether or not to also emit the keys of the table.
+--- @return Observable
 function Observable.fromTable(t, iterator, keys)
   iterator = iterator or pairs
   return Observable.create(function(observer)
@@ -102,11 +110,9 @@ function Observable.fromTable(t, iterator, keys)
 end
 
 --- Creates an Observable that produces values when the specified coroutine yields.
--- @arg {thread|function} fn - A coroutine or function to use to generate values.  Note that if a
---                             coroutine is used, the values it yields will be shared by all
---                             subscribed Observers (influenced by the Scheduler), whereas a new
---                             coroutine will be created for each Observer when a function is used.
--- @returns {Observable}
+--- @param fn thread A coroutine or function to use to generate values.  Note that if a coroutine is used, the values it yields will be shared by all subscribed Observers (influenced by the Scheduler), whereas a new coroutine will be created for each Observer when a function is used.
+--- @param scheduler Scheduler
+--- @return Observable
 function Observable.fromCoroutine(fn, scheduler)
   return Observable.create(function(observer)
     local thread = type(fn) == 'function' and coroutine.create(fn) or fn
@@ -131,8 +137,8 @@ function Observable.fromCoroutine(fn, scheduler)
 end
 
 --- Creates an Observable that produces values from a file, line by line.
--- @arg {string} filename - The name of the file used to create the Observable
--- @returns {Observable}
+--- @param filename string The name of the file used to create the Observable
+--- @return Observable
 function Observable.fromFileByLine(filename)
   return Observable.create(function(observer)
     local file = io.open(filename, 'r')
@@ -151,8 +157,8 @@ function Observable.fromFileByLine(filename)
 end
 
 --- Creates an Observable that creates a new Observable for each observer using a factory function.
--- @arg {function} factory - A function that returns an Observable.
--- @returns {Observable}
+--- @param fn fun():Observable A function that returns an Observable.
+--- @return Observable
 function Observable.defer(fn)
   if not fn or type(fn) ~= 'function' then
     error('Expected a function')
@@ -167,10 +173,10 @@ function Observable.defer(fn)
 end
 
 --- Returns an Observable that repeats a value a specified number of times.
--- @arg {*} value - The value to repeat.
--- @arg {number=} count - The number of times to repeat the value.  If left unspecified, the value
---                        is repeated an infinite number of times.
--- @returns {Observable}
+--- @generic T
+--- @param value T The value to repeat.
+--- @param count number The number of times to repeat the value.  If left unspecified, the value is repeated an infinite number of times.
+--- @return Observable
 function Observable.replicate(value, count)
   return Observable.create(function(observer)
     while count == nil or count > 0 do
@@ -184,8 +190,10 @@ function Observable.replicate(value, count)
 end
 
 --- Subscribes to this Observable and prints values it produces.
--- @arg {string=} name - Prefixes the printed messages with a name.
--- @arg {function=tostring} formatter - A function that formats one or more values to be printed.
+--- @param name string Prefixes the printed messages with a name.
+--- @param formatter fun(values):string A function that formats one or more values to be printed.
+--- @overload fun(name: string):Subscription
+--- @overload fun():Subscription
 function Observable:dump(name, formatter)
   name = name and (name .. ' ') or ''
   formatter = formatter or tostring
@@ -195,6 +203,17 @@ function Observable:dump(name, formatter)
   local onCompleted = function() print(name .. 'onCompleted') end
 
   return self:subscribe(onNext, onError, onCompleted)
+end
+
+--- Can be inserted in an observable chain to debug the chain.
+--- @param name string Prefixes the printed messages with a name.
+--- @param formatter fun(values):string A function that formats one or more values to be printed.
+--- @return Observable
+--- @overload fun(name: string):Observable
+--- @overload fun():Observable
+function Observable:debug(name, formatter)
+  self:dump(name, formatter)
+  return self
 end
 
 return Observable

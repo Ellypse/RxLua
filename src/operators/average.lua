@@ -1,7 +1,7 @@
 local Observable = require 'observable'
 
 --- Returns an Observable that produces the average of all values produced by the original.
--- @returns {Observable}
+--- @return Observable
 function Observable:average()
   return Observable.create(function(observer)
     local sum, count = 0, 0

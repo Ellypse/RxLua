@@ -2,20 +2,23 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Runs a function each time this Observable has activity. Similar to subscribe but does not
--- create a subscription.
--- @arg {function=} onNext - Run when the Observable produces values.
--- @arg {function=} onError - Run when the Observable encounters a problem.
--- @arg {function=} onCompleted - Run when the Observable completes.
--- @returns {Observable}
-function Observable:tap(_onNext, _onError, _onCompleted)
-  _onNext = _onNext or util.noop
-  _onError = _onError or util.noop
-  _onCompleted = _onCompleted or util.noop
+--- create a subscription.
+--- @param onNext onNextCallback Run when the Observable produces values.
+--- @param onError onErrorCallback Run when the Observable encounters a problem.
+--- @param onCompleted onCompletedCallback Run when the Observable completes.
+--- @return Observable
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback):Observable
+--- @overload fun(onNext: onNextCallback):Observable
+--- @overload fun():Observable
+function Observable:tap(onNext, onError, onCompleted)
+  onNext = onNext or util.noop
+  onError = onError or util.noop
+  onCompleted = onCompleted or util.noop
 
   return Observable.create(function(observer)
     local function onNext(...)
       util.tryWithObserver(observer, function(...)
-        _onNext(...)
+        onNext(...)
       end, ...)
 
       return observer:onNext(...)
@@ -23,7 +26,7 @@ function Observable:tap(_onNext, _onError, _onCompleted)
 
     local function onError(message)
       util.tryWithObserver(observer, function()
-        _onError(message)
+        onError(message)
       end)
 
       return observer:onError(message)
@@ -31,7 +34,7 @@ function Observable:tap(_onNext, _onError, _onCompleted)
 
     local function onCompleted()
       util.tryWithObserver(observer, function()
-        _onCompleted()
+        onCompleted()
       end)
 
       return observer:onCompleted()

@@ -2,8 +2,9 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that only produces values of the first that satisfy a predicate.
--- @arg {function} predicate - The predicate used to filter values.
--- @returns {Observable}
+--- @generic T
+--- @param predicate Predicate The predicate used to filter values.
+--- @return Observable
 function Observable:filter(predicate)
   predicate = predicate or util.identity
 

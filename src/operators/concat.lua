@@ -2,9 +2,11 @@ local Observable = require 'observable'
 local util = require 'util'
 
 --- Returns a new Observable that produces the values produced by all the specified Observables in
--- the order they are specified.
--- @arg {Observable...} sources - The Observables to concatenate.
--- @returns {Observable}
+--- the order they are specified.
+--- @param other Observable The Observable to concatenate.
+--- @vararg Observable The Observables to concatenate.
+--- @return Observable
+--- @overload fun(other: Observable):Observable
 function Observable:concat(other, ...)
   if not other then return self end
 

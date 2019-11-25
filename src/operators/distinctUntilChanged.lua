@@ -1,10 +1,11 @@
 local Observable = require 'observable'
 local util = require 'util'
 
---- Returns an Observable that only produces values from the original if they are different from
--- the previous value.
--- @arg {function} comparator - A function used to compare 2 values. If unspecified, == is used.
--- @returns {Observable}
+--- Returns an Observable that only produces values from the original if they are different from the previous value.
+--- @generic T
+--- @param comparator fun(a: T, b: T):boolean A function used to compare 2 values. If unspecified, == is used.
+--- @return Observable
+--- @overload fun():Observable
 function Observable:distinctUntilChanged(comparator)
   comparator = comparator or util.eq
 

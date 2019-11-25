@@ -3,10 +3,10 @@ local Subscription = require 'Subscription'
 local util = require 'util'
 
 --- Returns a new Observable that produces the values of the original delayed by a time period.
--- @arg {number|function} time - An amount in milliseconds to delay by, or a function which returns
---                                this value.
--- @arg {Scheduler} scheduler - The scheduler to run the Observable on.
--- @returns {Observable}
+--- @param time number An amount in milliseconds to delay by, or a function which returns this value.
+--- @param scheduler Scheduler The scheduler to run the Observable on.
+--- @return Observable
+--- @overload fun(time: Time, scheduler: Scheduler):Observable
 function Observable:delay(time, scheduler)
   time = type(time) ~= 'function' and util.constant(time) or time
 

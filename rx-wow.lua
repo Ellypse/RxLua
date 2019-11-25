@@ -1,7 +1,13 @@
 -- RxLua v0.0.3
--- https://github.com/bjornbytes/rxlua
+-- https://github.com/Ellypse/rxlua
 -- MIT License
 
+local MAJOR, MINOR = "RxWoW-0.0", 3
+
+---@class RxWoW
+local RxWoW = LibStub:NewLibrary(MAJOR, MINOR)
+
+if not RxWoW then return end
 local util = {}
 
 util.pack = table.pack or function(...) return { n = select('#', ...), ... } end
@@ -22,16 +28,15 @@ util.tryWithObserver = function(observer, fn, ...)
 end
 
 --- @class Subscription
--- @description A handle representing the link between an Observer and an Observable, as well as any
--- work required to clean up after the Observable completes or the Observer unsubscribes.
+--- @description A handle representing the link between an Observer and an Observable, as well as any
+--- work required to clean up after the Observable completes or the Observer unsubscribes.
 local Subscription = {}
 Subscription.__index = Subscription
 Subscription.__tostring = util.constant('Subscription')
 
 --- Creates a new Subscription.
--- @arg {function=} action - The action to run when the subscription is unsubscribed. It will only
---                           be run once.
--- @returns {Subscription}
+--- @param action fun(self: Subscription):void - The action to run when the subscription is unsubscribed. It will only be run once.
+--- @return Subscription
 function Subscription.create(action)
   local self = {
     action = action or util.noop,
@@ -49,16 +54,21 @@ function Subscription:unsubscribe()
 end
 
 --- @class Observer
--- @description Observers are simple objects that receive values from Observables.
+--- @generic T
+--- @description Observers are simple objects that receive values from Observables.
 local Observer = {}
 Observer.__index = Observer
 Observer.__tostring = util.constant('Observer')
 
 --- Creates a new Observer.
--- @arg {function=} onNext - Called when the Observable produces a value.
--- @arg {function=} onError - Called when the Observable terminates due to an error.
--- @arg {function=} onCompleted - Called when the Observable completes normally.
--- @returns {Observer}
+--- @generic T
+--- @param onNext onNextCallback void Called when the Observable produces a value.
+--- @param onError onErrorCallback void Called when the Observable terminates due to an error.
+--- @param onCompleted onCompletedCallback void Called when the Observable completes normally.
+--- @return Observer
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback)
+--- @overload fun(onNext: onNextCallback)
+--- @overload fun():Observer
 function Observer.create(onNext, onError, onCompleted)
   local self = {
     _onNext = onNext or util.noop,
@@ -71,7 +81,8 @@ function Observer.create(onNext, onError, onCompleted)
 end
 
 --- Pushes zero or more values to the Observer.
--- @arg {*...} values
+--- @generic T
+--- @vararg T
 function Observer:onNext(...)
   if not self.stopped then
     self._onNext(...)
@@ -79,7 +90,7 @@ function Observer:onNext(...)
 end
 
 --- Notify the Observer that an error has occurred.
--- @arg {string=} message - A string describing what went wrong.
+--- @param message string A string describing what went wrong.
 function Observer:onError(message)
   if not self.stopped then
     self.stopped = true
@@ -96,14 +107,14 @@ function Observer:onCompleted()
 end
 
 --- @class Observable
--- @description Observables push values to Observers.
+--- @description Observables push values to Observers.
 local Observable = {}
 Observable.__index = Observable
 Observable.__tostring = util.constant('Observable')
 
 --- Creates a new Observable.
--- @arg {function} subscribe - The subscription function that produces values.
--- @returns {Observable}
+--- @param subscribe fun(observer: Observer):void The subscription function that produces values.
+--- @return Observable
 function Observable.create(subscribe)
   local self = {
     _subscribe = subscribe
@@ -113,9 +124,15 @@ function Observable.create(subscribe)
 end
 
 --- Shorthand for creating an Observer and passing it to this Observable's subscription function.
--- @arg {function} onNext - Called when the Observable produces a value.
--- @arg {function} onError - Called when the Observable terminates due to an error.
--- @arg {function} onCompleted - Called when the Observable completes normally.
+--- @generic T
+--- @param onNext onNextCallback Called when the Observable produces a value.
+--- @param onError onErrorCallback Called when the Observable terminates due to an error.
+--- @param onCompleted onCompletedCallback Called when the Observable completes normally.
+--- @return Subscription
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback):Subscription
+--- @overload fun(onNext: onNextCallback)
+--- @overload fun(observer: Observer):Subscription
+--- @overload fun():Subscription
 function Observable:subscribe(onNext, onError, onCompleted)
   if type(onNext) == 'table' then
     return self._subscribe(onNext)
@@ -124,19 +141,20 @@ function Observable:subscribe(onNext, onError, onCompleted)
   end
 end
 
---- Returns an Observable that immediately completes without producing a value.
+--- @return Observable An Observable that immediately completes without producing a value.
 function Observable.empty()
   return Observable.create(function(observer)
     observer:onCompleted()
   end)
 end
 
---- Returns an Observable that never produces values and never completes.
+--- @return Observable An Observable that never produces values and never completes.
 function Observable.never()
   return Observable.create(function(observer) end)
 end
 
---- Returns an Observable that immediately produces an error.
+--- @param message string
+--- @return Observable An Observable that immediately produces an error.
 function Observable.throw(message)
   return Observable.create(function(observer)
     observer:onError(message)
@@ -144,8 +162,9 @@ function Observable.throw(message)
 end
 
 --- Creates an Observable that produces a set of values.
--- @arg {*...} values
--- @returns {Observable}
+--- @generic T
+--- @vararg T
+--- @return Observable
 function Observable.of(...)
   local args = {...}
   local argCount = select('#', ...)
@@ -159,11 +178,10 @@ function Observable.of(...)
 end
 
 --- Creates an Observable that produces a range of values in a manner similar to a Lua for loop.
--- @arg {number} initial - The first value of the range, or the upper limit if no other arguments
---                         are specified.
--- @arg {number=} limit - The second value of the range.
--- @arg {number=1} step - An amount to increment the value by each iteration.
--- @returns {Observable}
+--- @param initial number The first value of the range, or the upper limit if no other arguments are specified.
+--- @param limit number The second value of the range.
+--- @param step number An amount to increment the value by each iteration.
+--- @return Observable
 function Observable.fromRange(initial, limit, step)
   if not limit and not step then
     initial, limit = 1, initial
@@ -181,10 +199,11 @@ function Observable.fromRange(initial, limit, step)
 end
 
 --- Creates an Observable that produces values from a table.
--- @arg {table} table - The table used to create the Observable.
--- @arg {function=pairs} iterator - An iterator used to iterate the table, e.g. pairs or ipairs.
--- @arg {boolean} keys - Whether or not to also emit the keys of the table.
--- @returns {Observable}
+--- @generic T
+--- @param t T[] The table used to create the Observable.
+--- @param iterator fun():T Iterator used to iterate the table, e.g. pairs or ipairs.
+--- @param keys boolean Whether or not to also emit the keys of the table.
+--- @return Observable
 function Observable.fromTable(t, iterator, keys)
   iterator = iterator or pairs
   return Observable.create(function(observer)
@@ -197,11 +216,9 @@ function Observable.fromTable(t, iterator, keys)
 end
 
 --- Creates an Observable that produces values when the specified coroutine yields.
--- @arg {thread|function} fn - A coroutine or function to use to generate values.  Note that if a
---                             coroutine is used, the values it yields will be shared by all
---                             subscribed Observers (influenced by the Scheduler), whereas a new
---                             coroutine will be created for each Observer when a function is used.
--- @returns {Observable}
+--- @param fn thread A coroutine or function to use to generate values.  Note that if a coroutine is used, the values it yields will be shared by all subscribed Observers (influenced by the Scheduler), whereas a new coroutine will be created for each Observer when a function is used.
+--- @param scheduler Scheduler
+--- @return Observable
 function Observable.fromCoroutine(fn, scheduler)
   return Observable.create(function(observer)
     local thread = type(fn) == 'function' and coroutine.create(fn) or fn
@@ -226,8 +243,8 @@ function Observable.fromCoroutine(fn, scheduler)
 end
 
 --- Creates an Observable that produces values from a file, line by line.
--- @arg {string} filename - The name of the file used to create the Observable
--- @returns {Observable}
+--- @param filename string The name of the file used to create the Observable
+--- @return Observable
 function Observable.fromFileByLine(filename)
   return Observable.create(function(observer)
     local file = io.open(filename, 'r')
@@ -246,8 +263,8 @@ function Observable.fromFileByLine(filename)
 end
 
 --- Creates an Observable that creates a new Observable for each observer using a factory function.
--- @arg {function} factory - A function that returns an Observable.
--- @returns {Observable}
+--- @param fn fun():Observable A function that returns an Observable.
+--- @return Observable
 function Observable.defer(fn)
   if not fn or type(fn) ~= 'function' then
     error('Expected a function')
@@ -262,10 +279,10 @@ function Observable.defer(fn)
 end
 
 --- Returns an Observable that repeats a value a specified number of times.
--- @arg {*} value - The value to repeat.
--- @arg {number=} count - The number of times to repeat the value.  If left unspecified, the value
---                        is repeated an infinite number of times.
--- @returns {Observable}
+--- @generic T
+--- @param value T The value to repeat.
+--- @param count number The number of times to repeat the value.  If left unspecified, the value is repeated an infinite number of times.
+--- @return Observable
 function Observable.replicate(value, count)
   return Observable.create(function(observer)
     while count == nil or count > 0 do
@@ -279,8 +296,10 @@ function Observable.replicate(value, count)
 end
 
 --- Subscribes to this Observable and prints values it produces.
--- @arg {string=} name - Prefixes the printed messages with a name.
--- @arg {function=tostring} formatter - A function that formats one or more values to be printed.
+--- @param name string Prefixes the printed messages with a name.
+--- @param formatter fun(values):string A function that formats one or more values to be printed.
+--- @overload fun(name: string):Subscription
+--- @overload fun():Subscription
 function Observable:dump(name, formatter)
   name = name and (name .. ' ') or ''
   formatter = formatter or tostring
@@ -292,8 +311,20 @@ function Observable:dump(name, formatter)
   return self:subscribe(onNext, onError, onCompleted)
 end
 
+--- Can be inserted in an observable chain to debug the chain.
+--- @param name string Prefixes the printed messages with a name.
+--- @param formatter fun(values):string A function that formats one or more values to be printed.
+--- @return Observable
+--- @overload fun(name: string):Observable
+--- @overload fun():Observable
+function Observable:debug(name, formatter)
+  self:dump(name, formatter)
+  return self
+end
+
 --- Determine whether all items emitted by an Observable meet some criteria.
--- @arg {function=identity} predicate - The predicate used to evaluate objects.
+--- @param predicate fun(...):boolean - The predicate used to evaluate objects.
+--- @return Observable
 function Observable:all(predicate)
   predicate = predicate or util.identity
 
@@ -321,8 +352,8 @@ function Observable:all(predicate)
 end
 
 --- Given a set of Observables, produces values from only the first one to produce a value.
--- @arg {Observable...} observables
--- @returns {Observable}
+--- @vararg Observable
+--- @return Observable
 function Observable.amb(a, b, ...)
   if not a or not b then return a end
 
@@ -370,7 +401,7 @@ function Observable.amb(a, b, ...)
 end
 
 --- Returns an Observable that produces the average of all values produced by the original.
--- @returns {Observable}
+--- @return Observable
 function Observable:average()
   return Observable.create(function(observer)
     local sum, count = 0, 0
@@ -396,9 +427,9 @@ function Observable:average()
   end)
 end
 
---- Returns an Observable that buffers values from the original and produces them as multiple
--- values.
--- @arg {number} size - The size of the buffer.
+--- Returns an Observable that buffers values from the original and produces them as multiple values.
+--- @param size number The size of the buffer.
+--- @return Observable
 function Observable:buffer(size)
   if not size or type(size) ~= 'number' then
     error('Expected a number')
@@ -439,10 +470,10 @@ function Observable:buffer(size)
 end
 
 --- Returns an Observable that intercepts any errors from the previous and replace them with values
--- produced by a new Observable.
--- @arg {function|Observable} handler - An Observable or a function that returns an Observable to
---                                      replace the source Observable in the event of an error.
--- @returns {Observable}
+--- produced by a new Observable.
+--- @param handler fun(error: string):Observable - An Observable or a function that returns an Observable to replace the source Observable in the event of an error.
+--- @return Observable
+--- @overload fun(handler: Observable):Observable
 function Observable:catch(handler)
   handler = handler and (type(handler) == 'function' and handler or util.constant(handler))
 
@@ -477,12 +508,12 @@ function Observable:catch(handler)
 end
 
 --- Returns a new Observable that runs a combinator function on the most recent values from a set
--- of Observables whenever any of them produce a new value. The results of the combinator function
--- are produced by the new Observable.
--- @arg {Observable...} observables - One or more Observables to combine.
--- @arg {function} combinator - A function that combines the latest result from each Observable and
---                              returns a single value.
--- @returns {Observable}
+--- of Observables whenever any of them produce a new value. The results of the combinator function
+--- are produced by the new Observable.
+--- @generic T
+--- @vararg Observable One or more Observables to combine.
+--- @param combinator fun(value: T):T A function that combines the latest result from each Observable and returns a single value.
+--- @return Observable
 function Observable:combineLatest(...)
   local sources = {...}
   local combinator = table.remove(sources)
@@ -538,15 +569,17 @@ function Observable:combineLatest(...)
 end
 
 --- Returns a new Observable that produces the values of the first with falsy values removed.
--- @returns {Observable}
+--- @return Observable
 function Observable:compact()
   return self:filter(util.identity)
 end
 
 --- Returns a new Observable that produces the values produced by all the specified Observables in
--- the order they are specified.
--- @arg {Observable...} sources - The Observables to concatenate.
--- @returns {Observable}
+--- the order they are specified.
+--- @param other Observable The Observable to concatenate.
+--- @vararg Observable The Observables to concatenate.
+--- @return Observable
+--- @overload fun(other: Observable):Observable
 function Observable:concat(other, ...)
   if not other then return self end
 
@@ -574,9 +607,9 @@ function Observable:concat(other, ...)
 end
 
 --- Returns a new Observable that produces a single boolean value representing whether or not the
--- specified value was produced by the original.
--- @arg {*} value - The value to search for.  == is used for equality testing.
--- @returns {Observable}
+--- specified value was produced by the original.
+--- @param value any The value to search for.  == is used for equality testing.
+--- @return Observable
 function Observable:contains(value)
   return Observable.create(function(observer)
     local subscription
@@ -614,8 +647,8 @@ function Observable:contains(value)
 end
 
 --- Returns an Observable that produces a single value representing the number of values produced
--- by the source value that satisfy an optional predicate.
--- @arg {function=} predicate - The predicate used to match values.
+--- by the source value that satisfy an optional predicate.
+--- @param predicate fun(value: any):boolean - The predicate used to match values.
 function Observable:count(predicate)
   predicate = predicate or util.constant(true)
 
@@ -644,11 +677,11 @@ function Observable:count(predicate)
 end
 
 --- Returns a new throttled Observable that waits to produce values until a timeout has expired, at
--- which point it produces the latest value from the source Observable.  Whenever the source
--- Observable produces a value, the timeout is reset.
--- @arg {number|function} time - An amount in milliseconds to wait before producing the last value.
--- @arg {Scheduler} scheduler - The scheduler to run the Observable on.
--- @returns {Observable}
+--- which point it produces the latest value from the source Observable.  Whenever the source
+--- Observable produces a value, the timeout is reset.
+--- @param time number An amount in milliseconds to wait before producing the last value.
+--- @param scheduler Scheduler The scheduler to run the Observable on.
+--- @return Observable
 function Observable:debounce(time, scheduler)
   time = time or 0
 
@@ -682,11 +715,10 @@ function Observable:debounce(time, scheduler)
   end)
 end
 
---- Returns a new Observable that produces a default set of items if the source Observable produces
--- no values.
--- @arg {*...} values - Zero or more values to produce if the source completes without emitting
---                      anything.
--- @returns {Observable}
+--- Returns a new Observable that produces a default set of items if the source Observable produces no values.
+--- @generic T
+--- @vararg T Zero or more values to produce if the source completes without emitting anything.
+--- @return Observable
 function Observable:defaultIfEmpty(...)
   local defaults = util.pack(...)
 
@@ -715,10 +747,10 @@ function Observable:defaultIfEmpty(...)
 end
 
 --- Returns a new Observable that produces the values of the original delayed by a time period.
--- @arg {number|function} time - An amount in milliseconds to delay by, or a function which returns
---                                this value.
--- @arg {Scheduler} scheduler - The scheduler to run the Observable on.
--- @returns {Observable}
+--- @param time number An amount in milliseconds to delay by, or a function which returns this value.
+--- @param scheduler Scheduler The scheduler to run the Observable on.
+--- @return Observable
+--- @overload fun(time: Time, scheduler: Scheduler):Observable
 function Observable:delay(time, scheduler)
   time = type(time) ~= 'function' and util.constant(time) or time
 
@@ -747,7 +779,7 @@ function Observable:delay(time, scheduler)
 end
 
 --- Returns a new Observable that produces the values from the original with duplicates removed.
--- @returns {Observable}
+--- @return Observable
 function Observable:distinct()
   return Observable.create(function(observer)
     local values = {}
@@ -772,10 +804,11 @@ function Observable:distinct()
   end)
 end
 
---- Returns an Observable that only produces values from the original if they are different from
--- the previous value.
--- @arg {function} comparator - A function used to compare 2 values. If unspecified, == is used.
--- @returns {Observable}
+--- Returns an Observable that only produces values from the original if they are different from the previous value.
+--- @generic T
+--- @param comparator fun(a: T, b: T):boolean A function used to compare 2 values. If unspecified, == is used.
+--- @return Observable
+--- @overload fun():Observable
 function Observable:distinctUntilChanged(comparator)
   comparator = comparator or util.eq
 
@@ -807,8 +840,8 @@ function Observable:distinctUntilChanged(comparator)
 end
 
 --- Returns an Observable that produces the nth element produced by the source Observable.
--- @arg {number} index - The index of the item, with an index of 1 representing the first.
--- @returns {Observable}
+--- @param index number The index of the item, with an index of 1 representing the first.
+--- @return Observable
 function Observable:elementAt(index)
   if not index or type(index) ~= 'number' then
     error('Expected a number')
@@ -844,8 +877,9 @@ function Observable:elementAt(index)
 end
 
 --- Returns a new Observable that only produces values of the first that satisfy a predicate.
--- @arg {function} predicate - The predicate used to filter values.
--- @returns {Observable}
+--- @generic T
+--- @param predicate Predicate The predicate used to filter values.
+--- @return Observable
 function Observable:filter(predicate)
   predicate = predicate or util.identity
 
@@ -870,9 +904,10 @@ function Observable:filter(predicate)
   end)
 end
 
---- Returns a new Observable that produces the first value of the original that satisfies a
--- predicate.
--- @arg {function} predicate - The predicate used to find a value.
+--- Returns a new Observable that produces the first value of the original that satisfies a predicate.
+--- @generic T
+--- @param predicate Predicate The predicate used to find a value.
+--- @return Observable
 function Observable:find(predicate)
   predicate = predicate or util.identity
 
@@ -899,24 +934,26 @@ function Observable:find(predicate)
 end
 
 --- Returns a new Observable that only produces the first result of the original.
--- @returns {Observable}
+--- @return Observable
 function Observable:first()
   return self:take(1)
 end
 
 --- Returns a new Observable that transform the items emitted by an Observable into Observables,
--- then flatten the emissions from those into a single Observable
--- @arg {function} callback - The function to transform values from the original Observable.
--- @returns {Observable}
+--- then flatten the emissions from those into a single Observable
+--- @generic T
+--- @param callback fun(value: T):Observable The function to transform values from the original Observable.
+--- @return Observable
 function Observable:flatMap(callback)
   callback = callback or util.identity
   return self:map(callback):flatten()
 end
 
 --- Returns a new Observable that uses a callback to create Observables from the values produced by
--- the source, then produces values from the most recent of these Observables.
--- @arg {function=identity} callback - The function used to convert values to Observables.
--- @returns {Observable}
+--- the source, then produces values from the most recent of these Observables.
+--- @generic T
+--- @param callback fun(value: T):Observable[] The function used to convert values to Observables.
+--- @return Observable
 function Observable:flatMapLatest(callback)
   callback = callback or util.identity
   return Observable.create(function(observer)
@@ -958,8 +995,8 @@ function Observable:flatMapLatest(callback)
 end
 
 --- Returns a new Observable that subscribes to the Observables produced by the original and
--- produces their values.
--- @returns {Observable}
+--- produces their values.
+--- @return Observable
 function Observable:flatten()
   return Observable.create(function(observer)
     local subscriptions = {}
@@ -991,8 +1028,8 @@ function Observable:flatten()
 end
 
 --- Returns an Observable that terminates when the source terminates but does not produce any
--- elements.
--- @returns {Observable}
+--- elements.
+--- @return Observable
 function Observable:ignoreElements()
   return Observable.create(function(observer)
     local function onError(message)
@@ -1008,7 +1045,7 @@ function Observable:ignoreElements()
 end
 
 --- Returns a new Observable that only produces the last result of the original.
--- @returns {Observable}
+--- @returns Observable
 function Observable:last()
   return Observable.create(function(observer)
     local value
@@ -1036,8 +1073,9 @@ function Observable:last()
 end
 
 --- Returns a new Observable that produces the values of the original transformed by a function.
--- @arg {function} callback - The function to transform values from the original Observable.
--- @returns {Observable}
+--- @generic T
+--- @param callback fun(value: T):any The function to transform values from the original Observable.
+--- @return Observable
 function Observable:map(callback)
   return Observable.create(function(observer)
     callback = callback or util.identity
@@ -1061,15 +1099,15 @@ function Observable:map(callback)
 end
 
 --- Returns a new Observable that produces the maximum value produced by the original.
--- @returns {Observable}
+--- @return Observable
 function Observable:max()
   return self:reduce(math.max)
 end
 
 --- Returns a new Observable that produces the values produced by all the specified Observables in
--- the order they are produced.
--- @arg {Observable...} sources - One or more Observables to merge.
--- @returns {Observable}
+--- the order they are produced.
+--- @vararg Observable One or more Observables to merge.
+--- @return Observable
 function Observable:merge(...)
   local sources = {...}
   table.insert(sources, 1, self)
@@ -1109,31 +1147,31 @@ function Observable:merge(...)
 end
 
 --- Returns a new Observable that produces the minimum value produced by the original.
--- @returns {Observable}
+--- @return Observable
 function Observable:min()
   return self:reduce(math.min)
 end
 
 --- Returns an Observable that produces the values of the original inside tables.
--- @returns {Observable}
+--- @return Observable
 function Observable:pack()
   return self:map(util.pack)
 end
 
 --- Returns two Observables: one that produces values for which the predicate returns truthy for,
--- and another that produces values for which the predicate returns falsy.
--- @arg {function} predicate - The predicate used to partition the values.
--- @returns {Observable}
--- @returns {Observable}
+--- and another that produces values for which the predicate returns falsy.
+--- @generic T
+--- @param predicate fun(value :T):boolean The predicate used to partition the values.
+--- @return Observable, Observable
 function Observable:partition(predicate)
   return self:filter(predicate), self:reject(predicate)
 end
 
 --- Returns a new Observable that produces values computed by extracting the given keys from the
--- tables produced by the original.
--- @arg {string...} keys - The key to extract from the table. Multiple keys can be specified to
---                         recursively pluck values from nested tables.
--- @returns {Observable}
+--- tables produced by the original.
+--- @param key string The key to extract from the table. Multiple keys can be specified to recursively pluck values from nested tables.
+--- @vararg string
+--- @return Observable
 function Observable:pluck(key, ...)
   if not key then return self end
 
@@ -1159,12 +1197,12 @@ function Observable:pluck(key, ...)
 end
 
 --- Returns a new Observable that produces a single value computed by accumulating the results of
--- running a function on each value produced by the original Observable.
--- @arg {function} accumulator - Accumulates the values of the original Observable. Will be passed
---                               the return value of the last call as the first argument and the
---                               current values as the rest of the arguments.
--- @arg {*} seed - A value to pass to the accumulator the first time it is run.
--- @returns {Observable}
+--- running a function on each value produced by the original Observable.
+--- @generic T
+--- @param accumulator Accumulator - Accumulates the values of the original Observable. Will be passed the return value of the last call as the first argument and the current values as the rest of the arguments.
+--- @param seed T A value to pass to the accumulator the first time it is run.
+--- @return Observable
+--- @overload fun(accumulator: Accumulator):Observable
 function Observable:reduce(accumulator, seed)
   return Observable.create(function(observer)
     local result = seed
@@ -1195,9 +1233,9 @@ function Observable:reduce(accumulator, seed)
 end
 
 --- Returns a new Observable that produces values from the original which do not satisfy a
--- predicate.
--- @arg {function} predicate - The predicate used to reject values.
--- @returns {Observable}
+--- predicate.
+--- @param predicate Predicate - The predicate used to reject values.
+--- @return Observable
 function Observable:reject(predicate)
   predicate = predicate or util.identity
 
@@ -1223,9 +1261,9 @@ function Observable:reject(predicate)
 end
 
 --- Returns an Observable that restarts in the event of an error.
--- @arg {number=} count - The maximum number of times to retry.  If left unspecified, an infinite
---                        number of retries will be attempted.
--- @returns {Observable}
+--- @param count number The maximum number of times to retry.  If left unspecified, an infinite number of retries will be attempted.
+--- @return Observable
+--- @overload fun():Observable
 function Observable:retry(count)
   return Observable.create(function(observer)
     local subscription
@@ -1257,9 +1295,9 @@ function Observable:retry(count)
 end
 
 --- Returns a new Observable that produces its most recent value every time the specified observable
--- produces a value.
--- @arg {Observable} sampler - The Observable that is used to sample values from this Observable.
--- @returns {Observable}
+--- produces a value.
+--- @param sampler Observable The Observable that is used to sample values from this Observable.
+--- @return Observable
 function Observable:sample(sampler)
   if not sampler then error('Expected an Observable') end
 
@@ -1295,13 +1333,12 @@ function Observable:sample(sampler)
 end
 
 --- Returns a new Observable that produces values computed by accumulating the results of running a
--- function on each value produced by the original Observable.
--- @arg {function} accumulator - Accumulates the values of the original Observable. Will be passed
---                               the return value of the last call as the first argument and the
---                               current values as the rest of the arguments.  Each value returned
---                               from this function will be emitted by the Observable.
--- @arg {*} seed - A value to pass to the accumulator the first time it is run.
--- @returns {Observable}
+--- function on each value produced by the original Observable.
+--- @generic T
+--- @param accumulator Accumulator Accumulates the values of the original Observable. Will be passed the return value of the last call as the first argument and the current values as the rest of the arguments. Each value returned from this function will be emitted by the Observable.
+--- @param seed T A value to pass to the accumulator the first time it is run.
+--- @return Observable
+--- @overload fun(accumulator: Accumulator):Observable
 function Observable:scan(accumulator, seed)
   return Observable.create(function(observer)
     local result = seed
@@ -1332,9 +1369,10 @@ function Observable:scan(accumulator, seed)
 end
 
 --- Returns a new Observable that skips over a specified number of values produced by the original
--- and produces the rest.
--- @arg {number=1} n - The number of values to ignore.
--- @returns {Observable}
+--- and produces the rest.
+--- @param n number The number of values to ignore.
+--- @return Observable
+--- @overload fun():Observable
 function Observable:skip(n)
   n = n or 1
 
@@ -1362,9 +1400,9 @@ function Observable:skip(n)
 end
 
 --- Returns an Observable that omits a specified number of values from the end of the original
--- Observable.
--- @arg {number} count - The number of items to omit from the end.
--- @returns {Observable}
+--- Observable.
+--- @param count number The number of items to omit from the end.
+--- @return Observable
 function Observable:skipLast(count)
   if not count or type(count) ~= 'number' then
     error('Expected a number')
@@ -1398,9 +1436,9 @@ function Observable:skipLast(count)
 end
 
 --- Returns a new Observable that skips over values produced by the original until the specified
--- Observable produces a value.
--- @arg {Observable} other - The Observable that triggers the production of values.
--- @returns {Observable}
+--- Observable produces a value.
+--- @param other Observable The Observable that triggers the production of values.
+--- @return Observable
 function Observable:skipUntil(other)
   return Observable.create(function(observer)
     local triggered = false
@@ -1433,8 +1471,8 @@ function Observable:skipUntil(other)
 end
 
 --- Returns a new Observable that skips elements until the predicate returns falsy for one of them.
--- @arg {function} predicate - The predicate used to continue skipping values.
--- @returns {Observable}
+--- @param predicate Predicate The predicate used to continue skipping values.
+--- @return Observable
 function Observable:skipWhile(predicate)
   predicate = predicate or util.identity
 
@@ -1466,10 +1504,10 @@ function Observable:skipWhile(predicate)
 end
 
 --- Returns a new Observable that produces the specified values followed by all elements produced by
--- the source Observable.
--- @arg {*...} values - The values to produce before the Observable begins producing values
---                      normally.
--- @returns {Observable}
+--- the source Observable.
+--- @generic T
+--- @vararg T The values to produce before the Observable begins producing values normally.
+--- @return Observable
 function Observable:startWith(...)
   local values = util.pack(...)
   return Observable.create(function(observer)
@@ -1479,15 +1517,15 @@ function Observable:startWith(...)
 end
 
 --- Returns an Observable that produces a single value representing the sum of the values produced
--- by the original.
--- @returns {Observable}
+--- by the original.
+--- @return Observable
 function Observable:sum()
   return self:reduce(function(x, y) return x + y end, 0)
 end
 
 --- Given an Observable that produces Observables, returns an Observable that produces the values
--- produced by the most recently produced Observable.
--- @returns {Observable}
+--- produced by the most recently produced Observable.
+--- @return Observable
 function Observable:switch()
   return Observable.create(function(observer)
     local innerSubscription
@@ -1526,8 +1564,9 @@ function Observable:switch()
 end
 
 --- Returns a new Observable that only produces the first n results of the original.
--- @arg {number=1} n - The number of elements to produce before completing.
--- @returns {Observable}
+--- @param n number The number of elements to produce before completing.
+--- @return Observable
+--- @overload fun():Observable
 function Observable:take(n)
   n = n or 1
 
@@ -1562,9 +1601,9 @@ function Observable:take(n)
 end
 
 --- Returns an Observable that produces a specified number of elements from the end of a source
--- Observable.
--- @arg {number} count - The number of elements to produce.
--- @returns {Observable}
+--- Observable.
+--- @param count number The number of elements to produce.
+--- @return Observable
 function Observable:takeLast(count)
   if not count or type(count) ~= 'number' then
     error('Expected a number')
@@ -1596,8 +1635,8 @@ function Observable:takeLast(count)
 end
 
 --- Returns a new Observable that completes when the specified Observable fires.
--- @arg {Observable} other - The Observable that triggers completion of the original.
--- @returns {Observable}
+--- @param other Observable The Observable that triggers completion of the original.
+--- @return Observable
 function Observable:takeUntil(other)
   return Observable.create(function(observer)
     local function onNext(...)
@@ -1619,8 +1658,8 @@ function Observable:takeUntil(other)
 end
 
 --- Returns a new Observable that produces elements until the predicate returns falsy.
--- @arg {function} predicate - The predicate used to continue production of values.
--- @returns {Observable}
+--- @param predicate Predicate The predicate used to continue production of values.
+--- @return Observable
 function Observable:takeWhile(predicate)
   predicate = predicate or util.identity
 
@@ -1654,20 +1693,23 @@ function Observable:takeWhile(predicate)
 end
 
 --- Runs a function each time this Observable has activity. Similar to subscribe but does not
--- create a subscription.
--- @arg {function=} onNext - Run when the Observable produces values.
--- @arg {function=} onError - Run when the Observable encounters a problem.
--- @arg {function=} onCompleted - Run when the Observable completes.
--- @returns {Observable}
-function Observable:tap(_onNext, _onError, _onCompleted)
-  _onNext = _onNext or util.noop
-  _onError = _onError or util.noop
-  _onCompleted = _onCompleted or util.noop
+--- create a subscription.
+--- @param onNext onNextCallback Run when the Observable produces values.
+--- @param onError onErrorCallback Run when the Observable encounters a problem.
+--- @param onCompleted onCompletedCallback Run when the Observable completes.
+--- @return Observable
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback):Observable
+--- @overload fun(onNext: onNextCallback):Observable
+--- @overload fun():Observable
+function Observable:tap(onNext, onError, onCompleted)
+  onNext = onNext or util.noop
+  onError = onError or util.noop
+  onCompleted = onCompleted or util.noop
 
   return Observable.create(function(observer)
     local function onNext(...)
       util.tryWithObserver(observer, function(...)
-        _onNext(...)
+        onNext(...)
       end, ...)
 
       return observer:onNext(...)
@@ -1675,7 +1717,7 @@ function Observable:tap(_onNext, _onError, _onCompleted)
 
     local function onError(message)
       util.tryWithObserver(observer, function()
-        _onError(message)
+        onError(message)
       end)
 
       return observer:onError(message)
@@ -1683,7 +1725,7 @@ function Observable:tap(_onNext, _onError, _onCompleted)
 
     local function onCompleted()
       util.tryWithObserver(observer, function()
-        _onCompleted()
+        onCompleted()
       end)
 
       return observer:onCompleted()
@@ -1694,14 +1736,14 @@ function Observable:tap(_onNext, _onError, _onCompleted)
 end
 
 --- Returns an Observable that unpacks the tables produced by the original.
--- @returns {Observable}
+--- @return Observable
 function Observable:unpack()
   return self:map(util.unpack)
 end
 
 --- Returns an Observable that takes any values produced by the original that consist of multiple
--- return values and produces each value individually.
--- @returns {Observable}
+--- return values and produces each value individually.
+--- @return Observable
 function Observable:unwrap()
   return Observable.create(function(observer)
     local function onNext(...)
@@ -1724,9 +1766,8 @@ function Observable:unwrap()
 end
 
 --- Returns an Observable that produces a sliding window of the values produced by the original.
--- @arg {number} size - The size of the window. The returned observable will produce this number
---                      of the most recent values as multiple arguments to onNext.
--- @returns {Observable}
+--- @param size number The size of the window. The returned observable will produce this number of the most recent values as multiple arguments to onNext.
+--- @return Observable
 function Observable:window(size)
   if not size or type(size) ~= 'number' then
     error('Expected a number')
@@ -1757,10 +1798,10 @@ function Observable:window(size)
 end
 
 --- Returns an Observable that produces values from the original along with the most recently
--- produced value from all other specified Observables. Note that only the first argument from each
--- source Observable is used.
--- @arg {Observable...} sources - The Observables to include the most recent values from.
--- @returns {Observable}
+--- produced value from all other specified Observables. Note that only the first argument from each
+--- source Observable is used.
+--- @vararg Observable The Observables to include the most recent values from.
+--- @return Observable
 function Observable:with(...)
   local sources = {...}
 
@@ -1800,12 +1841,12 @@ function Observable:with(...)
 end
 
 --- Returns an Observable that merges the values produced by the source Observables by grouping them
--- by their index.  The first onNext event contains the first value of all of the sources, the
--- second onNext event contains the second value of all of the sources, and so on.  onNext is called
--- a number of times equal to the number of values produced by the Observable that produces the
--- fewest number of values.
--- @arg {Observable...} sources - The Observables to zip.
--- @returns {Observable}
+--- by their index.  The first onNext event contains the first value of all of the sources, the
+--- second onNext event contains the second value of all of the sources, and so on.  onNext is called
+--- a number of times equal to the number of values produced by the Observable that produces the
+--- fewest number of values.
+--- @vararg Observable The Observables to zip.
+--- @returns Observable
 function Observable.zip(...)
   local sources = util.pack(...)
   local count = #sources
@@ -1871,33 +1912,33 @@ function Observable.zip(...)
 end
 
 --- @class ImmediateScheduler
--- @description Schedules Observables by running all operations immediately.
+--- @description Schedules Observables by running all operations immediately.
 local ImmediateScheduler = {}
 ImmediateScheduler.__index = ImmediateScheduler
 ImmediateScheduler.__tostring = util.constant('ImmediateScheduler')
 
 --- Creates a new ImmediateScheduler.
--- @returns {ImmediateScheduler}
+--- @return ImmediateScheduler
 function ImmediateScheduler.create()
   return setmetatable({}, ImmediateScheduler)
 end
 
 --- Schedules a function to be run on the scheduler. It is executed immediately.
--- @arg {function} action - The function to execute.
+--- @param action fun():void The function to execute.
 function ImmediateScheduler:schedule(action)
   action()
 end
 
 --- @class CooperativeScheduler
--- @description Manages Observables using coroutines and a virtual clock that must be updated
--- manually.
+--- @description Manages Observables using coroutines and a virtual clock that must be updated
+--- manually.
 local CooperativeScheduler = {}
 CooperativeScheduler.__index = CooperativeScheduler
 CooperativeScheduler.__tostring = util.constant('CooperativeScheduler')
 
 --- Creates a new CooperativeScheduler.
--- @arg {number=0} currentTime - A time to start the scheduler at.
--- @returns {CooperativeScheduler}
+--- @param currentTime number A time to start the scheduler at.
+--- @return CooperativeScheduler
 function CooperativeScheduler.create(currentTime)
   local self = {
     tasks = {},
@@ -1908,12 +1949,11 @@ function CooperativeScheduler.create(currentTime)
 end
 
 --- Schedules a function to be run after an optional delay.  Returns a subscription that will stop
--- the action from running.
--- @arg {function} action - The function to execute. Will be converted into a coroutine. The
---                          coroutine may yield execution back to the scheduler with an optional
---                          number, which will put it to sleep for a time period.
--- @arg {number=0} delay - Delay execution of the action by a virtual time period.
--- @returns {Subscription}
+--- the action from running.
+--- @param action fun():void The function to execute. Will be converted into a coroutine. The coroutine may yield execution back to the scheduler with an optional number, which will put it to sleep for a time period.
+--- @param delay number Delay execution of the action by a virtual time period.
+--- @return Subscription
+--- @overload fun(action: fun():void):Subscription
 function CooperativeScheduler:schedule(action, delay)
   local task = {
     thread = coroutine.create(action),
@@ -1927,6 +1967,7 @@ function CooperativeScheduler:schedule(action, delay)
   end)
 end
 
+--- @param task fun():void
 function CooperativeScheduler:unschedule(task)
   for i = 1, #self.tasks do
     if self.tasks[i] == task then
@@ -1936,10 +1977,8 @@ function CooperativeScheduler:unschedule(task)
 end
 
 --- Triggers an update of the CooperativeScheduler. The clock will be advanced and the scheduler
--- will run any coroutines that are due to be run.
--- @arg {number=0} delta - An amount of time to advance the clock by. It is common to pass in the
---                         time in seconds or milliseconds elapsed since this function was last
---                         called.
+--- will run any coroutines that are due to be run.
+--- @param delta number An amount of time to advance the clock by. It is common to pass in the time in seconds or milliseconds elapsed since this function was last called.
 function CooperativeScheduler:update(delta)
   self.currentTime = self.currentTime + (delta or 0)
 
@@ -1966,27 +2005,27 @@ function CooperativeScheduler:update(delta)
   end
 end
 
---- Returns whether or not the CooperativeScheduler's queue is empty.
+--- @return boolean Whether or not the CooperativeScheduler's queue is empty.
 function CooperativeScheduler:isEmpty()
   return not next(self.tasks)
 end
 
 --- @class TimeoutScheduler
--- @description A scheduler that uses luvit's timer library to schedule events on an event loop.
+--- @description A scheduler that uses luvit's timer library to schedule events on an event loop.
 local TimeoutScheduler = {}
 TimeoutScheduler.__index = TimeoutScheduler
 TimeoutScheduler.__tostring = util.constant('TimeoutScheduler')
 
 --- Creates a new TimeoutScheduler.
--- @returns {TimeoutScheduler}
+--- @return TimeoutScheduler
 function TimeoutScheduler.create()
   return setmetatable({}, TimeoutScheduler)
 end
 
 --- Schedules an action to run at a future point in time.
--- @arg {function} action - The action to run.
--- @arg {number=0} delay - The delay, in milliseconds.
--- @returns {Subscription}
+--- @param action fun():void The action to run.
+--- @arg delay number The delay, in milliseconds.
+--- @return Subscription
 function TimeoutScheduler:schedule(action, delay, ...)
   local timer = require 'timer'
   local subscription
@@ -1996,16 +2035,16 @@ function TimeoutScheduler:schedule(action, delay, ...)
   end)
 end
 
---- @class Subject
--- @description Subjects function both as an Observer and as an Observable. Subjects inherit all
--- Observable functions, including subscribe. Values can also be pushed to the Subject, which will
--- be broadcasted to any subscribed Observers.
+--- @class Subject: Observable
+--- @description Subjects function both as an Observer and as an Observable. Subjects inherit all
+--- Observable functions, including subscribe. Values can also be pushed to the Subject, which will
+--- be broadcasted to any subscribed Observers.
 local Subject = setmetatable({}, Observable)
 Subject.__index = Subject
 Subject.__tostring = util.constant('Subject')
 
 --- Creates a new Subject.
--- @returns {Subject}
+--- @return Subject
 function Subject.create()
   local self = {
     observers = {},
@@ -2016,10 +2055,15 @@ function Subject.create()
 end
 
 --- Creates a new Observer and attaches it to the Subject.
--- @arg {function|table} onNext|observer - A function called when the Subject produces a value or
---                                         an existing Observer to attach to the Subject.
--- @arg {function} onError - Called when the Subject terminates due to an error.
--- @arg {function} onCompleted - Called when the Subject completes normally.
+--- @generic T
+--- @param onNext onNextCallback A function called when the Subject produces a value or an existing Observer to attach to the Subject.
+--- @param onError onErrorCallback Called when the Subject terminates due to an error.
+--- @param onCompleted onCompletedCallback Called when the Subject completes normally.
+--- @return Subscription
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback):Subscription
+--- @overload fun(onNext: onNextCallback):Subscription
+--- @overload fun(observer: Observer):Subscription
+--- @overload fun():Subscription
 function Subject:subscribe(onNext, onError, onCompleted)
   local observer
 
@@ -2042,7 +2086,8 @@ function Subject:subscribe(onNext, onError, onCompleted)
 end
 
 --- Pushes zero or more values to the Subject. They will be broadcasted to all Observers.
--- @arg {*...} values
+--- @generic T
+--- @vararg T
 function Subject:onNext(...)
   if not self.stopped then
     for i = #self.observers, 1, -1 do
@@ -2052,7 +2097,7 @@ function Subject:onNext(...)
 end
 
 --- Signal to all Observers that an error has occurred.
--- @arg {string=} message - A string describing what went wrong.
+--- @param message string A string describing what went wrong.
 function Subject:onError(message)
   if not self.stopped then
     for i = #self.observers, 1, -1 do
@@ -2076,18 +2121,18 @@ end
 
 Subject.__call = Subject.onNext
 
---- @class AsyncSubject
--- @description AsyncSubjects are subjects that produce either no values or a single value.  If
--- multiple values are produced via onNext, only the last one is used.  If onError is called, then
--- no value is produced and onError is called on any subscribed Observers.  If an Observer
--- subscribes and the AsyncSubject has already terminated, the Observer will immediately receive the
--- value or the error.
+--- @class AsyncSubject: Observable
+--- @description AsyncSubjects are subjects that produce either no values or a single value.  If
+--- multiple values are produced via onNext, only the last one is used.  If onError is called, then
+--- no value is produced and onError is called on any subscribed Observers.  If an Observer
+--- subscribes and the AsyncSubject has already terminated, the Observer will immediately receive the
+--- value or the error.
 local AsyncSubject = setmetatable({}, Observable)
 AsyncSubject.__index = AsyncSubject
 AsyncSubject.__tostring = util.constant('AsyncSubject')
 
 --- Creates a new AsyncSubject.
--- @returns {AsyncSubject}
+--- @return AsyncSubject
 function AsyncSubject.create()
   local self = {
     observers = {},
@@ -2100,10 +2145,14 @@ function AsyncSubject.create()
 end
 
 --- Creates a new Observer and attaches it to the AsyncSubject.
--- @arg {function|table} onNext|observer - A function called when the AsyncSubject produces a value
---                                         or an existing Observer to attach to the AsyncSubject.
--- @arg {function} onError - Called when the AsyncSubject terminates due to an error.
--- @arg {function} onCompleted - Called when the AsyncSubject completes normally.
+--- @generic T
+--- @param onNext onNextCallback A function called when the AsyncSubject produces a value.
+--- @param onError onErrorCallback Called when the AsyncSubject terminates due to an error.
+--- @param onCompleted onCompletedCallback Called when the AsyncSubject completes normally.
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback):Subscription
+--- @overload fun(onNext: onNextCallback):Subscription
+--- @overload fun(observer: Observer):Subscription
+--- @overload fun():Subscription
 function AsyncSubject:subscribe(onNext, onError, onCompleted)
   local observer
 
@@ -2135,7 +2184,8 @@ function AsyncSubject:subscribe(onNext, onError, onCompleted)
 end
 
 --- Pushes zero or more values to the AsyncSubject.
--- @arg {*...} values
+--- @generic T
+--- @vararg T
 function AsyncSubject:onNext(...)
   if not self.stopped then
     self.value = util.pack(...)
@@ -2143,7 +2193,7 @@ function AsyncSubject:onNext(...)
 end
 
 --- Signal to all Observers that an error has occurred.
--- @arg {string=} message - A string describing what went wrong.
+--- @param message string A string describing what went wrong.
 function AsyncSubject:onError(message)
   if not self.stopped then
     self.errorMessage = message
@@ -2171,18 +2221,30 @@ function AsyncSubject:onCompleted()
   end
 end
 
+---@return Observable
+function AsyncSubject:asObservable()
+  return Observable.create(function(observer)
+    self:subscribe(
+      function(...) observer:onNext(...) end,
+      function(... ) observer:onError(...) end,
+      function() observer:onCompleted() end
+    )
+  end)
+end
+
 AsyncSubject.__call = AsyncSubject.onNext
 
---- @class BehaviorSubject
--- @description A Subject that tracks its current value. Provides an accessor to retrieve the most
--- recent pushed value, and all subscribers immediately receive the latest value.
+--- @class BehaviorSubject: Subject
+--- @description A Subject that tracks its current value. Provides an accessor to retrieve the most
+--- recent pushed value, and all subscribers immediately receive the latest value.
 local BehaviorSubject = setmetatable({}, Subject)
 BehaviorSubject.__index = BehaviorSubject
 BehaviorSubject.__tostring = util.constant('BehaviorSubject')
 
 --- Creates a new BehaviorSubject.
--- @arg {*...} value - The initial values.
--- @returns {BehaviorSubject}
+--- @generic T
+--- @vararg T The initial values.
+--- @return BehaviorSubject
 function BehaviorSubject.create(...)
   local self = {
     observers = {},
@@ -2197,10 +2259,15 @@ function BehaviorSubject.create(...)
 end
 
 --- Creates a new Observer and attaches it to the BehaviorSubject. Immediately broadcasts the most
--- recent value to the Observer.
--- @arg {function} onNext - Called when the BehaviorSubject produces a value.
--- @arg {function} onError - Called when the BehaviorSubject terminates due to an error.
--- @arg {function} onCompleted - Called when the BehaviorSubject completes normally.
+--- recent value to the Observer.
+--- @generic T
+--- @param onNext onNextCallback Called when the BehaviorSubject produces a value.
+--- @param onError onErrorCallback Called when the BehaviorSubject terminates due to an error.
+--- @param onCompleted onCompletedCallback Called when the BehaviorSubject completes normally.
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback):Subscription
+--- @overload fun(onNext: onNextCallback):Subscription
+--- @overload fun(observer: Observer):Subscription
+--- @return Subscription
 function BehaviorSubject:subscribe(onNext, onError, onCompleted)
   local observer
 
@@ -2220,50 +2287,68 @@ function BehaviorSubject:subscribe(onNext, onError, onCompleted)
 end
 
 --- Pushes zero or more values to the BehaviorSubject. They will be broadcasted to all Observers.
--- @arg {*...} values
+--- @generic T
+--- @vararg T
 function BehaviorSubject:onNext(...)
   self.value = util.pack(...)
   return Subject.onNext(self, ...)
 end
 
 --- Returns the last value emitted by the BehaviorSubject, or the initial value passed to the
--- constructor if nothing has been emitted yet.
--- @returns {*...}
+--- constructor if nothing has been emitted yet.
+--- @generic T
+--- @return T
 function BehaviorSubject:getValue()
   if self.value ~= nil then
     return util.unpack(self.value)
   end
 end
 
+---@return Observable
+function BehaviorSubject:asObservable()
+  return Observable.create(function(observer)
+    self:subscribe(
+      function(...) observer:onNext(...) end,
+      function(... ) observer:onError(...) end,
+      function() observer:onCompleted() end
+    )
+  end)
+end
+
 BehaviorSubject.__call = BehaviorSubject.onNext
 
---- @class ReplaySubject
--- @description A Subject that provides new Subscribers with some or all of the most recently
--- produced values upon subscription.
+--- @class ReplaySubject: Subject
+--- @description A Subject that provides new Subscribers with some or all of the most recently
+--- produced values upon subscription.
 local ReplaySubject = setmetatable({}, Subject)
 ReplaySubject.__index = ReplaySubject
 ReplaySubject.__tostring = util.constant('ReplaySubject')
 
 --- Creates a new ReplaySubject.
--- @arg {number=} bufferSize - The number of values to send to new subscribers. If nil, an infinite
---                             buffer is used (note that this could lead to memory issues).
--- @returns {ReplaySubject}
-function ReplaySubject.create(n)
+--- @param bufferSize number The number of values to send to new subscribers. If nil, an infinite buffer is used (note that this could lead to memory issues).
+--- @return ReplaySubject
+function ReplaySubject.create(bufferSize)
   local self = {
     observers = {},
     stopped = false,
     buffer = {},
-    bufferSize = n
+    bufferSize = bufferSize
   }
 
   return setmetatable(self, ReplaySubject)
 end
 
 --- Creates a new Observer and attaches it to the ReplaySubject. Immediately broadcasts the most
--- contents of the buffer to the Observer.
--- @arg {function} onNext - Called when the ReplaySubject produces a value.
--- @arg {function} onError - Called when the ReplaySubject terminates due to an error.
--- @arg {function} onCompleted - Called when the ReplaySubject completes normally.
+--- contents of the buffer to the Observer.
+--- @generic T
+--- @param onNext onNextCallback Called when the ReplaySubject produces a value.
+--- @param onError onErrorCallback Called when the ReplaySubject terminates due to an error.
+--- @param onCompleted onCompletedCallback Called when the ReplaySubject completes normally.
+--- @return Subscription
+--- @overload fun(onNext: onNextCallback, onError: onErrorCallback):Subscription
+--- @overload fun(onNext: onNextCallback):Subscription
+--- @overload fun(observer: Observer):Subscription
+--- @overload fun():Subscription
 function ReplaySubject:subscribe(onNext, onError, onCompleted)
   local observer
 
@@ -2283,7 +2368,8 @@ function ReplaySubject:subscribe(onNext, onError, onCompleted)
 end
 
 --- Pushes zero or more values to the ReplaySubject. They will be broadcasted to all Observers.
--- @arg {*...} values
+--- @generic T
+--- @vararg T
 function ReplaySubject:onNext(...)
   table.insert(self.buffer, util.pack(...))
   if self.bufferSize and #self.buffer > self.bufferSize then
@@ -2293,21 +2379,39 @@ function ReplaySubject:onNext(...)
   return Subject.onNext(self, ...)
 end
 
+---@return Observable
+function ReplaySubject:asObservable()
+  return Observable.create(function(observer)
+    self:subscribe(
+      function(...) observer:onNext(...) end,
+      function(... ) observer:onError(...) end,
+      function() observer:onCompleted() end
+    )
+  end)
+end
+
 ReplaySubject.__call = ReplaySubject.onNext
 
 Observable.wrap = Observable.buffer
 Observable['repeat'] = Observable.replicate
 
-return {
-  util = util,
-  Subscription = Subscription,
-  Observer = Observer,
-  Observable = Observable,
-  ImmediateScheduler = ImmediateScheduler,
-  CooperativeScheduler = CooperativeScheduler,
-  TimeoutScheduler = TimeoutScheduler,
-  Subject = Subject,
-  AsyncSubject = AsyncSubject,
-  BehaviorSubject = BehaviorSubject,
-  ReplaySubject = ReplaySubject
-}
+---@generic T
+---@alias onNextCallback fun(value: T):void
+---@alias onErrorCallback fun(error: string):void
+---@alias onCompletedCallback fun():void
+---@alias Scheduler {schedule: fun(self: table, action: fun(), delay: number)}
+---@alias Time fun():number
+---@alias Accumulator fun(value: T):T
+---@alias Predicate fun(value: T):boolean
+
+RxWoW.util = util
+RxWoW.Subscription = Subscription
+RxWoW.Observer = Observer
+RxWoW.Observable = Observable
+RxWoW.ImmediateScheduler = ImmediateScheduler
+RxWoW.CooperativeScheduler = CooperativeScheduler
+RxWoW.TimeoutScheduler = TimeoutScheduler
+RxWoW.Subject = Subject
+RxWoW.AsyncSubject = AsyncSubject
+RxWoW.BehaviorSubject = BehaviorSubject
+RxWoW.ReplaySubject = ReplaySubject

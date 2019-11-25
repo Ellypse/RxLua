@@ -1,8 +1,8 @@
 local Observable = require 'observable'
 
 --- Returns an Observable that produces the nth element produced by the source Observable.
--- @arg {number} index - The index of the item, with an index of 1 representing the first.
--- @returns {Observable}
+--- @param index number The index of the item, with an index of 1 representing the first.
+--- @return Observable
 function Observable:elementAt(index)
   if not index or type(index) ~= 'number' then
     error('Expected a number')
