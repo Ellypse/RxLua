@@ -316,6 +316,21 @@ function Observable:debug(name, formatter)
   return self
 end
 
+---@param subject Subject
+function Observable:bindTo(subject)
+  return self:subscribe(
+    function(...)
+      subject:onNext(...)
+    end,
+    function(...)
+      subject:onError(...)
+    end,
+    function()
+      subject:onCompleted()
+    end
+  )
+end
+
 --- Determine whether all items emitted by an Observable meet some criteria.
 --- @param predicate fun(...):boolean - The predicate used to evaluate objects.
 --- @return Observable
@@ -2038,7 +2053,7 @@ Subject.__index = Subject
 Subject.__tostring = util.constant('Subject')
 
 --- Creates a new Subject.
---- @return Subject
+--- @return Subject|fun(value: any)
 function Subject.create()
   local self = {
     observers = {},

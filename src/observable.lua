@@ -216,4 +216,19 @@ function Observable:debug(name, formatter)
   return self
 end
 
+---@param subject Subject
+function Observable:bindTo(subject)
+  return self:subscribe(
+    function(...)
+      subject:onNext(...)
+    end,
+    function(...)
+      subject:onError(...)
+    end,
+    function()
+      subject:onCompleted()
+    end
+  )
+end
+
 return Observable
