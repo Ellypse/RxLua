@@ -2,12 +2,6 @@
 -- https://github.com/Ellypse/rxlua
 -- MIT License
 
-local MAJOR, MINOR = "RxWoW-0.0", 3
-
----@class RxWoW
-local RxWoW = LibStub:NewLibrary(MAJOR, MINOR)
-
-if not RxWoW then return end
 local util = {}
 
 util.pack = table.pack or function(...) return { n = select('#', ...), ... } end
@@ -2404,14 +2398,16 @@ Observable['repeat'] = Observable.replicate
 ---@alias Accumulator fun(value: T):T
 ---@alias Predicate fun(value: T):boolean
 
-RxWoW.util = util
-RxWoW.Subscription = Subscription
-RxWoW.Observer = Observer
-RxWoW.Observable = Observable
-RxWoW.ImmediateScheduler = ImmediateScheduler
-RxWoW.CooperativeScheduler = CooperativeScheduler
-RxWoW.TimeoutScheduler = TimeoutScheduler
-RxWoW.Subject = Subject
-RxWoW.AsyncSubject = AsyncSubject
-RxWoW.BehaviorSubject = BehaviorSubject
-RxWoW.ReplaySubject = ReplaySubject
+return {
+  util = util,
+  Subscription = Subscription,
+  Observer = Observer,
+  Observable = Observable,
+  ImmediateScheduler = ImmediateScheduler,
+  CooperativeScheduler = CooperativeScheduler,
+  TimeoutScheduler = TimeoutScheduler,
+  Subject = Subject,
+  AsyncSubject = AsyncSubject,
+  BehaviorSubject = BehaviorSubject,
+  ReplaySubject = ReplaySubject
+}

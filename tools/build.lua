@@ -87,16 +87,6 @@ exports.homepage = 'https://github.com/bjornbytes/rxlua'
 
 ]]
 
----@language Lua
-local WoWExports = [[
-local MAJOR, MINOR = "RxWoW-0.0", 3
-
----@class RxWoW
-local RxWoW = LibStub:NewLibrary(MAJOR, MINOR)
-
-if not RxWoW then return end
-]]
-
 local footer = [[return {
   util = util,
   Subscription = Subscription,
@@ -154,9 +144,6 @@ if distribution == 'base' then
 elseif distribution == 'luvit' then
   destination = 'rx-luvit.lua'
   components = { header, exports, output, footer }
-elseif distribution == 'WoW' then
-  destination = 'rx-wow.lua'
-  components = { header, WoWExports, output, WoWFooter }
 else
   error('Invalid distribution specified.')
 end
