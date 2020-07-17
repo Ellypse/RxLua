@@ -289,6 +289,15 @@ function Observable.replicate(value, count)
   end)
 end
 
+local formattedTexts = {}
+local function defaultFormatter(...)
+  table.wipe(formattedTexts)
+  for _, value in ipairs({ ... }) do
+    table.insert(formattedTexts, tostring(value))
+  end
+  return table.concat(formattedTexts, ", ")
+end
+
 --- Subscribes to this Observable and prints values it produces.
 --- @param name string Prefixes the printed messages with a name.
 --- @param formatter fun(values):string A function that formats one or more values to be printed.
@@ -296,7 +305,7 @@ end
 --- @overload fun():Subscription
 function Observable:dump(name, formatter)
   name = name and (name .. ' ') or ''
-  formatter = formatter or tostring
+  formatter = formatter or defaultFormatter
 
   local onNext = function(...) print(name .. 'onNext: ' .. formatter(...)) end
   local onError = function(e) print(name .. 'onError: ' .. e) end
@@ -1107,6 +1116,10 @@ function Observable:map(callback)
   end)
 end
 
+function Observable:mapTo(value)
+  return self:map(function() return value end)
+end
+
 --- Returns a new Observable that produces the maximum value produced by the original.
 --- @return Observable
 function Observable:max()
@@ -1363,6 +1376,29 @@ function Observable:scan(accumulator, seed)
           observer:onNext(result)
         end, ...)
       end
+    end
+
+    local function onError(e)
+      return observer:onError(e)
+    end
+
+    local function onCompleted()
+      return observer:onCompleted()
+    end
+
+    return self:subscribe(onNext, onError, onCompleted)
+  end)
+end
+
+function Observable:withPrevious(firstValue)
+  return Observable.create(function(observer)
+    local result = firstValue
+
+    local function onNext(...)
+      return util.tryWithObserver(observer, function(...)
+        observer:onNext(result, ...)
+        result = ...
+      end, ...)
     end
 
     local function onError(e)
